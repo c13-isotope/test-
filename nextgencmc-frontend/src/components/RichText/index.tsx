@@ -1,4 +1,7 @@
 import React from 'react'
+import AudioPlayer from '@/components/Media/AudioPlayer'
+import VideoPlayer from '@/components/Media/VideoPlayer'
+import ExternalVideoEmbed from '@/components/Media/ExternalVideoEmbed'
 
 type RichNode = {
   type?: string
@@ -24,8 +27,18 @@ type RichNode = {
     width?: number
     height?: number
     filename?: string
+    mimeType?: string
+    mediaType?: string
+    caption?: string
+    duration?: number
   }
   relationTo?: string
+  // For external embeds
+  url?: string
+  fields?: {
+    url?: string
+    caption?: string
+  }
 }
 
 type ContentStructure = {
@@ -191,27 +204,74 @@ export default function RichText({ content }: { content: ContentStructure }) {
       case 'horizontalrule':
         return <hr key={index} className="my-8 border-gray-300 dark:border-gray-600" />
 
-      // Handle uploaded images
+      // Handle uploaded images, audio, and video
       case 'upload':
         if (node.value && node.relationTo === 'media') {
-          const imageData = node.value
+          const mediaData = node.value
+          const mediaUrl = `http://localhost:3000${mediaData.url}`
+          
+          // Determine media type from mimeType or mediaType field
+          const mimeType = mediaData.mimeType || ''
+          const mediaType = mediaData.mediaType
+          
+          // Handle audio files
+          if (mediaType === 'audio' || mimeType.startsWith('audio/')) {
+            return (
+              <AudioPlayer
+                key={index}
+                src={mediaUrl}
+                alt={mediaData.alt || mediaData.filename}
+                caption={mediaData.caption}
+              />
+            )
+          }
+          
+          // Handle video files
+          if (mediaType === 'video' || mimeType.startsWith('video/')) {
+            return (
+              <VideoPlayer
+                key={index}
+                src={mediaUrl}
+                alt={mediaData.alt || mediaData.filename}
+                caption={mediaData.caption}
+              />
+            )
+          }
+          
+          // Handle images (default behavior)
           return (
             <div key={index} className="my-6">
               <img
-                src={`http://localhost:3000${imageData.url}`}
-                alt={imageData.alt || imageData.filename || 'Uploaded image'}
+                src={mediaUrl}
+                alt={mediaData.alt || mediaData.filename || 'Uploaded image'}
                 className="w-full h-auto rounded-lg shadow-md"
                 style={{ 
-                  maxWidth: imageData.width ? `${imageData.width}px` : '100%',
+                  maxWidth: mediaData.width ? `${mediaData.width}px` : '100%',
                   height: 'auto'
                 }}
               />
-              {imageData.alt && (
+              {mediaData.alt && (
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 text-center italic">
-                  {imageData.alt}
+                  {mediaData.alt}
                 </p>
               )}
             </div>
+          )
+        }
+        return null
+
+      // Handle external video embeds
+      case 'video-embed':
+      case 'embed':
+        if (node.url || node.fields?.url) {
+          const embedUrl = node.url || node.fields?.url
+          const embedCaption = node.fields?.caption
+          return (
+            <ExternalVideoEmbed
+              key={index}
+              url={embedUrl!}
+              caption={embedCaption}
+            />
           )
         }
         return null
