@@ -194,7 +194,22 @@ export interface Post {
  */
 export interface Media {
   id: string;
+  /**
+   * Alternative text for images or description for audio/video
+   */
   alt?: string | null;
+  /**
+   * Type of media file
+   */
+  mediaType?: ('image' | 'audio' | 'video') | null;
+  /**
+   * Duration in seconds (for audio/video)
+   */
+  duration?: number | null;
+  /**
+   * Caption or subtitles for the media
+   */
+  caption?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -331,6 +346,9 @@ export interface PostsSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  mediaType?: T;
+  duration?: T;
+  caption?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
