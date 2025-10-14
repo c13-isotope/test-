@@ -155,21 +155,198 @@ export interface Post {
    * Brief summary of the blog post content
    */
   excerpt: string;
-  content: {
-    root: {
-      type: string;
-      children: {
-        type: string;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
+  layout?:
+    | (
+        | {
+            /**
+             * Choose font family for this text block
+             */
+            fontFamily?:
+              | (
+                  | 'default'
+                  | 'times-new-roman'
+                  | 'arial'
+                  | 'georgia'
+                  | 'verdana'
+                  | 'calibri'
+                  | 'garamond'
+                  | 'helvetica'
+                  | 'courier-new'
+                  | 'trebuchet-ms'
+                  | 'brush-script'
+                )
+              | null;
+            /**
+             * Choose font size
+             */
+            fontSize?: ('small' | 'normal' | 'large' | 'xlarge') | null;
+            /**
+             * Choose text color
+             */
+            textColor?: ('default' | 'primary' | 'dark' | 'light' | 'success' | 'warning' | 'error') | null;
+            /**
+             * Main content with formatting options
+             */
+            content: {
+              root: {
+                type: string;
+                children: {
+                  type: string;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'richText';
+          }
+        | {
+            language?:
+              | (
+                  | 'javascript'
+                  | 'typescript'
+                  | 'python'
+                  | 'html'
+                  | 'css'
+                  | 'json'
+                  | 'bash'
+                  | 'java'
+                  | 'php'
+                  | 'sql'
+                  | 'text'
+                )
+              | null;
+            /**
+             * Enter your code here
+             */
+            code: string;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'code';
+          }
+        | {
+            /**
+             * Optional table title
+             */
+            tableTitle?: string | null;
+            headerStyle?: {
+              backgroundColor?:
+                | ('#3B82F6' | '#10B981' | '#EF4444' | '#8B5CF6' | '#F59E0B' | '#6B7280' | '#14B8A6')
+                | null;
+              textColor?: ('#FFFFFF' | '#000000') | null;
+            };
+            /**
+             * Table column headers
+             */
+            headers?:
+              | {
+                  text: string;
+                  id?: string | null;
+                }[]
+              | null;
+            /**
+             * Add table rows - ensure each row has same number of cells as headers
+             */
+            rows?:
+              | {
+                  cells?:
+                    | {
+                        content: string;
+                        /**
+                         * Highlight this cell
+                         */
+                        highlight?: boolean | null;
+                        id?: string | null;
+                      }[]
+                    | null;
+                  id?: string | null;
+                }[]
+              | null;
+            borderStyle?: ('all' | 'horizontal' | 'header' | 'none') | null;
+            /**
+             * Alternate row background colors for better readability
+             */
+            stripedRows?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'richTable';
+          }
+        | {
+            title: string;
+            columns?:
+              | {
+                  columnTitle: string;
+                  cards?:
+                    | {
+                        title: string;
+                        description?: string | null;
+                        status?: ('todo' | 'in-progress' | 'done') | null;
+                        id?: string | null;
+                      }[]
+                    | null;
+                  id?: string | null;
+                }[]
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'kanbanBoard';
+          }
+        | {
+            title?: string | null;
+            items?:
+              | {
+                  timeframe: string;
+                  title: string;
+                  description?: string | null;
+                  actions?:
+                    | {
+                        action?: string | null;
+                        id?: string | null;
+                      }[]
+                    | null;
+                  id?: string | null;
+                }[]
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'timeline';
+          }
+        | {
+            emoji?: string | null;
+            text: {
+              root: {
+                type: string;
+                children: {
+                  type: string;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            };
+            color?: ('gray' | 'yellow' | 'blue' | 'green' | 'red') | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'callout';
+          }
+        | {
+            type?: ('line' | 'dashed') | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'divider';
+          }
+      )[]
+    | null;
   author?: (string | null) | User;
   publishedDate?: string | null;
   status?: ('draft' | 'published') | null;
@@ -317,7 +494,119 @@ export interface PostsSelect<T extends boolean = true> {
   slug?: T;
   featuredImage?: T;
   excerpt?: T;
-  content?: T;
+  layout?:
+    | T
+    | {
+        richText?:
+          | T
+          | {
+              fontFamily?: T;
+              fontSize?: T;
+              textColor?: T;
+              content?: T;
+              id?: T;
+              blockName?: T;
+            };
+        code?:
+          | T
+          | {
+              language?: T;
+              code?: T;
+              id?: T;
+              blockName?: T;
+            };
+        richTable?:
+          | T
+          | {
+              tableTitle?: T;
+              headerStyle?:
+                | T
+                | {
+                    backgroundColor?: T;
+                    textColor?: T;
+                  };
+              headers?:
+                | T
+                | {
+                    text?: T;
+                    id?: T;
+                  };
+              rows?:
+                | T
+                | {
+                    cells?:
+                      | T
+                      | {
+                          content?: T;
+                          highlight?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                  };
+              borderStyle?: T;
+              stripedRows?: T;
+              id?: T;
+              blockName?: T;
+            };
+        kanbanBoard?:
+          | T
+          | {
+              title?: T;
+              columns?:
+                | T
+                | {
+                    columnTitle?: T;
+                    cards?:
+                      | T
+                      | {
+                          title?: T;
+                          description?: T;
+                          status?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        timeline?:
+          | T
+          | {
+              title?: T;
+              items?:
+                | T
+                | {
+                    timeframe?: T;
+                    title?: T;
+                    description?: T;
+                    actions?:
+                      | T
+                      | {
+                          action?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                  };
+              id?: T;
+              blockName?: T;
+            };
+        callout?:
+          | T
+          | {
+              emoji?: T;
+              text?: T;
+              color?: T;
+              id?: T;
+              blockName?: T;
+            };
+        divider?:
+          | T
+          | {
+              type?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
   author?: T;
   publishedDate?: T;
   status?: T;

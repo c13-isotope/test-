@@ -7,7 +7,7 @@ export const Media: CollectionConfig = {
     read: () => true,
   },
   upload: {
-    staticDir: path.resolve(process.cwd(), 'media'), // Make sure this directory exists
+    staticDir: path.resolve(process.cwd(), 'media'),  // your media folder
     imageSizes: [
       {
         name: 'thumbnail',
@@ -31,3 +31,5 @@ export const Media: CollectionConfig = {
     },
   ],
 }
+
+export default Media

@@ -9,6 +9,7 @@ interface Post {
   excerpt: string;
   slug?: string;
   content?: any;
+  layout?: any;
   tags?: string[];
   featuredImage?: {
     id: string;
@@ -54,25 +55,53 @@ const getImageAlt = (featuredImage: Post['featuredImage'], title: string): strin
 
 async function getPost(slug: string): Promise<Post | null> {
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/posts?where[slug][equals]=${slug}&depth=2`,
+    // Use localhost directly to avoid environment variable issues
+    const baseUrl = 'http://localhost:3000';
+    
+    // Try multiple endpoint formats
+    const endpoints = [
+      `${baseUrl}/api/posts?where[slug][equals]=${slug}&depth=2`,
+      `${baseUrl}/api/posts/${slug}?depth=2`,
+      `${baseUrl}/posts?where[slug][equals]=${slug}&depth=2`,
+      `${baseUrl}/posts/${slug}?depth=2`
+    ];
 
-      {
-        cache: 'no-store',
-        headers: { 'Content-Type': 'application/json' },
+    for (const endpoint of endpoints) {
+      console.log(`📡 Trying endpoint: ${endpoint}`);
+      
+      try {
+        const response = await fetch(endpoint, {
+          cache: 'no-store',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const post = data.docs?.[0] || data;
+          
+          if (post) {
+            console.log(`✅ Post found via: ${endpoint}`);
+            console.log('📝 Post data:', {
+              id: post.id,
+              title: post.title,
+              hasContent: !!post.content,
+              hasLayout: !!post.layout,
+            });
+            return post;
+          }
+        } else {
+          console.log(`❌ Endpoint failed: ${endpoint} (${response.status})`);
+        }
+      } catch (error) {
+        console.log(`❌ Endpoint error: ${endpoint}`, error);
       }
-    );
-
-    if (!response.ok) {
-      console.error('Failed to fetch post:', response.status, response.statusText);
-      return null;
     }
 
-    const data = await response.json();
-    console.log('Full post data with tags:', JSON.stringify(data.docs?.[0], null, 2));
-    return data.docs?.[0] || null;
+    console.log('❌ All endpoints failed');
+    return null;
+
   } catch (error) {
-    console.error('Error fetching post:', error);
+    console.error('❌ Error fetching post:', error);
     return null;
   }
 }
@@ -94,19 +123,44 @@ export default async function BlogPost({ params }: PageProps) {
               404 - Post Not Found
             </h1>
             <p className="mb-8 text-base font-medium text-body-color">
-              The blog post you're looking for doesn't exist.
+              The blog post "{slug}" doesn't exist or there was an error loading it.
             </p>
-            <Link
-              href="/blog"
-              className="rounded-sm bg-primary px-8 py-4 text-base font-semibold text-white duration-300 hover:bg-primary/80"
-            >
-              Back to Blog
-            </Link>
+            
+            {/* Debug Information */}
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded max-w-md mx-auto">
+              <p className="text-yellow-800 text-sm font-medium mb-2">Troubleshooting:</p>
+              <div className="text-yellow-700 text-xs text-left">
+                <p>• Check if Payload CMS is running on localhost:3000</p>
+                <p>• Verify the post with slug "{slug}" exists in your CMS</p>
+                <p>• Check browser Network tab for API requests</p>
+                <p>• Try visiting: <a href="http://localhost:3000/api/posts" className="underline">http://localhost:3000/api/posts</a></p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/blog"
+                className="rounded-sm bg-primary px-8 py-4 text-base font-semibold text-white duration-300 hover:bg-primary/80"
+              >
+                ← Back to Blog
+              </Link>
+              <Link
+                href="/"
+                className="rounded-sm bg-gray-600 px-8 py-4 text-base font-semibold text-white duration-300 hover:bg-gray-700"
+              >
+                Go Home
+              </Link>
+            </div>
           </div>
         </section>
       </>
     );
   }
+
+  // Determine which content to use
+  const contentToRender = post.layout || post.content;
+  const hasContent = contentToRender && 
+    (Array.isArray(contentToRender) ? contentToRender.length > 0 : Object.keys(contentToRender).length > 0);
 
   return (
     <>
@@ -155,8 +209,52 @@ export default async function BlogPost({ params }: PageProps) {
                 ) : null;
               })()}
 
-              {/* Rich Text */}
-              <RichText content={post.content} />
+              {/* Content Debug Info */}
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded">
+                <p className="text-blue-800 text-sm font-medium mb-2">Content Information:</p>
+                <div className="text-blue-700 text-xs space-y-1">
+                  <p>• Has layout: {post.layout ? 'Yes' : 'No'}</p>
+                  <p>• Has content: {post.content ? 'Yes' : 'No'}</p>
+                  <p>• Layout type: {post.layout ? typeof post.layout : 'N/A'}</p>
+                  <p>• Content type: {post.content ? typeof post.content : 'N/A'}</p>
+                  {post.layout && (
+                    <p>• Layout structure: {Array.isArray(post.layout) ? `Array (${post.layout.length} items)` : 'Object'}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Rich Text Content */}
+              <div className="prose prose-lg max-w-none 
+                prose-headings:text-black prose-headings:dark:text-white
+                prose-p:text-body-color prose-p:leading-relaxed
+                prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                prose-strong:text-black prose-strong:dark:text-white
+                prose-blockquote:border-l-4 prose-blockquote:border-primary
+                prose-blockquote:bg-gray-50 prose-blockquote:dark:bg-gray-800
+                prose-blockquote:px-6 prose-blockquote:py-4 prose-blockquote:rounded-r-lg
+                prose-ul:list-disc prose-ol:list-decimal
+                prose-li:text-body-color
+                prose-table:border-collapse prose-table:border prose-table:border-gray-300
+                prose-th:bg-primary prose-th:text-white prose-th:p-4
+                prose-td:border prose-td:border-gray-300 prose-td:p-4
+                prose-img:rounded-lg prose-img:shadow-md
+                dark:prose-invert">
+                
+                {hasContent ? (
+                  <RichText content={contentToRender} />
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">📝</div>
+                    <h3 className="text-xl font-semibold text-black dark:text-white mb-4">
+                      Content Coming Soon
+                    </h3>
+                    <p className="text-body-color text-lg italic max-w-2xl mx-auto">
+                      Our regulatory experts are currently preparing this comprehensive article on pharmaceutical regulatory affairs. 
+                      Check back soon for expert insights and professional guidance.
+                    </p>
+                  </div>
+                )}
+              </div>
 
               {/* Professional Footer Note */}
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 my-8">
@@ -172,8 +270,7 @@ export default async function BlogPost({ params }: PageProps) {
                     </h4>
                     <p className="text-body-color text-sm leading-relaxed">
                       Professional pharmaceutical regulatory affairs expertise specializing in CMC submissions, 
-                      MHRA variations, and compliance strategies. Our regulatory consultants provide expert 
-                      guidance for pharmaceutical companies navigating complex regulatory requirements.
+                      MHRA variations, and compliance strategies.
                     </p>
                     <div className="mt-3">
                       <Link 
@@ -187,7 +284,7 @@ export default async function BlogPost({ params }: PageProps) {
                 </div>
               </div>
 
-              {/* Enhanced Tags with Better Contrast */}
+              {/* Enhanced Tags */}
               {post.tags && post.tags.length > 0 && (
                 <div className="mt-8">
                   <h4 className="text-sm font-medium text-body-color mb-3">Tags:</h4>
@@ -206,7 +303,7 @@ export default async function BlogPost({ params }: PageProps) {
 
               {/* Navigation Footer */}
               <div className="border-t border-body-color border-opacity-10 pt-8 mt-10">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                   <Link
                     href="/blog"
                     className="inline-flex items-center rounded-sm bg-primary px-6 py-3 text-base font-semibold text-white duration-300 hover:bg-primary/80"
@@ -214,9 +311,9 @@ export default async function BlogPost({ params }: PageProps) {
                     ← Back to Blog
                   </Link>
                   
-                  <div className="text-right">
+                  <div className="text-center sm:text-right">
                     <p className="text-sm text-body-color mb-2">Share this article</p>
-                    <div className="flex space-x-3">
+                    <div className="flex space-x-3 justify-center sm:justify-end">
                       <button className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary hover:text-white transition-colors">
                         📧
                       </button>
